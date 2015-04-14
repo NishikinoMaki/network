@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -325,5 +326,56 @@ public class HttpClientUtil {
 
     public static String httpPost(String url, HttpEntity httpEntity, Map<String, String> param, String defaultCharset) throws Exception {
         return httpPost(httpClient, url, httpEntity, param, defaultCharset);
+    }
+    
+    public static String httpPostSetParamInHeaders(HttpClient client, String url, HttpEntity entity, Map<String, String> param, String defaultCharset) throws Exception {
+        HttpPost httpPost = null;
+        String content = "";
+        long before = System.currentTimeMillis();
+        Exception ex = null;
+        try {
+            httpPost = new HttpPost(url);
+            if(param != null){
+            	for(String key : param.keySet()){
+            		 httpPost.setHeader(key, param.get(key));
+            	}
+            }
+            httpPost.setEntity(entity);
+            HttpResponse response = client.execute(httpPost);
+            content = EntityUtils.toString(response.getEntity(), defaultCharset);
+            return content;
+        } catch (Exception e) {
+            ex = e;
+        } finally {
+            long span = System.currentTimeMillis() - before;
+            if (ex != null) {
+                errlog.error("httpPost -ERROR- [{}]url:{},postContent:{}", new Object[] {
+                    HumanReadableUtil.timeSpan(span),
+                    url,
+                    param,
+                    ex
+                });
+            } else if (span >= slow_threshold) {
+                slowlog.warn("httpPost -SLOW-  [{}]url:{},postContent:{}", new Object[] {
+                    HumanReadableUtil.timeSpan(span),
+                    url,
+                    param,
+                });
+            } else {
+                log.debug("httpPost -OK-  [{}]url:{},postContent:{}", new Object[] {
+                    HumanReadableUtil.timeSpan(span),
+                    url,
+                    param
+                });
+            }
+            if (null != httpPost) {
+                httpPost.abort();
+            }
+        }
+        return null;
+    }
+    
+    public static String httpPostSetParamInHeaders(String url, HttpEntity entity, Map<String, String> param, String defaultCharset) throws Exception{
+    	return httpPostSetParamInHeaders(httpClient, url, entity, param, defaultCharset);
     }
 }

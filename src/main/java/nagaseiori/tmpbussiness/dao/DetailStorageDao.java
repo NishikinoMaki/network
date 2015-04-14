@@ -52,9 +52,19 @@ public class DetailStorageDao {
 		update(tableName, parameterSource);
 	}
 	
+	public void updateChatGroupMsg(String tableName, ChatGroupMsg chatGroupMsg){
+		MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+		parameterSource.addValue("avatar_url", chatGroupMsg.getAvatar_url());
+		parameterSource.addValue("msg_serial_t", chatGroupMsg.getMsg_serial_t());
+		parameterSource.addValue("uid", chatGroupMsg.getUid());
+		parameterSource.addValue("send_id", chatGroupMsg.getSend_id());
+		parameterSource.addValue("recv_id", chatGroupMsg.getRecv_id());
+		update(tableName, parameterSource);
+	}
+	
 	<T> void update(String tableName, MapSqlParameterSource parameterSource){
 		StringBuilder sql = new StringBuilder();
-		sql.append("update ").append(tableName).append(" set avatar_url=:avatar_url where 1=1 and msg_serial_t=:msg_serial_t and uid=uid and send_id=send_id and recv_id=recv_id limit 1");
+		sql.append("update ").append(tableName).append(" set avatar_url=:avatar_url where 1=1 and msg_serial_t=:msg_serial_t and uid=:uid and send_id=:send_id and recv_id=:recv_id limit 1");
 		detailStorageTemplate.update(sql.toString(), parameterSource);
 	}
 }

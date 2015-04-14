@@ -45,4 +45,26 @@
 	<bean id="detailStorageTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
 		<constructor-arg ref="detailStorageDataSource" />
 	</bean>
+	
+	<bean id="syncStorageHikariConfig" class="com.zaxxer.hikari.HikariConfig">
+	    <property name="poolName" value="springHikariCP" />
+	    <property name="connectionTestQuery" value="SELECT 1" />
+	    <property name="dataSourceClassName" value="com.mysql.jdbc.jdbc2.optional.MysqlDataSource" />
+	    <property name="dataSourceProperties">
+	        <props>
+	            <prop key="url">${jdbc_url_sync_storage}</prop>
+	            <prop key="user">${jdbc_user_sync_storage}</prop>
+	            <prop key="password">${jdbc_password_sync_storage}</prop>
+	        </props>
+	    </property>
+	</bean>
+
+	<bean id="syncStorageDataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+	    <constructor-arg ref="syncStorageHikariConfig"/>
+	</bean>
+
+	<bean id="syncStorageTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
+		<constructor-arg ref="syncStorageDataSource" />
+	</bean>
+	
 </beans>
