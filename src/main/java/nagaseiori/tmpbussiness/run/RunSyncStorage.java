@@ -4,35 +4,75 @@ import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import nagaseiori.commons.SpringContextUtil;
 import nagaseiori.tmpbussiness.dao.SyncMsg;
 import nagaseiori.tmpbussiness.dao.SyncStorageDao;
 
-import org.apache.commons.lang3.StringUtils;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import common.Common.chat_body_msg;
 import common.Common.msg_content;
 
 public class RunSyncStorage {
 
-	final static String[] extFilter = new String[]{".jpg",".JPG",".bmp",".BMP",".png", ".PNG",".jpeg", ".JPEG",".gif", ".GIF" ,".spx", ".SPX"};
-	
-	public static void main(String[] args) throws SQLException, Exception {
+	public static void updateByTableName(String tableName) throws InvalidProtocolBufferException, SQLException{
 		SyncStorageDao syncStorageDao = SpringContextUtil.getBean("syncStorageDao", SyncStorageDao.class);
-		List<SyncMsg> list = syncStorageDao.selectList("262660_27");
+		List<SyncMsg> list = syncStorageDao.selectList(tableName);
+		if(list == null){
+			return;
+		}
 		for(SyncMsg syncMsg : list){
 			Blob pbBody = syncMsg.getPb_body();
 			chat_body_msg body_msg = chat_body_msg.parseFrom(pbBody.getBytes(1, (int)pbBody.length()));
 			msg_content msg = body_msg.getMsg();
 			String avatar_url = msg.getAvatarUrl().toStringUtf8();
 			String msgText = msg.getMsg().toStringUtf8();
-			int index = StringUtils.indexOfAny(msgText, extFilter);
-			String msgKey = null;
-			if(index > -1){//符合过滤条件
-				msgKey = TfsUploadUtil.uploadFile(msgText);
+			String new_avatar_url = TfsUploadUtil.uploadFile(avatar_url);
+			String newMsgText = TfsUploadUtil.uploadFile(msgText);
+			if(StringUtils.equals(avatar_url, new_avatar_url) && StringUtils.equals(msgText, newMsgText)){
+				//如果上传前后的路径不变，则不需要更新数据库
+				continue;
 			}
-			String avatarKey = TfsUploadUtil.uploadFile(avatar_url);
 			//上传完成，重新组包
+			common.Common.msg_content.Builder msgContentBuilder = msg_content.newBuilder(msg);
+			msgContentBuilder.setAvatarUrl(ByteString.copyFromUtf8(new_avatar_url));
+			msgContentBuilder.setMsg(ByteString.copyFromUtf8(newMsgText));
+			msg_content newMsgContent = msgContentBuilder.build();
+			common.Common.chat_body_msg.Builder chatBodyMsgBuilder = chat_body_msg.newBuilder(body_msg);
+			chatBodyMsgBuilder.setMsg(newMsgContent);
+			chat_body_msg writeBody = chatBodyMsgBuilder.build();
+			syncStorageDao.update(tableName, syncMsg, writeBody.toByteArray());
+		}
+	}
+	
+	public static void unPackPbBody(String tableName) throws InvalidProtocolBufferException, SQLException{
+		SyncStorageDao syncStorageDao = SpringContextUtil.getBean("syncStorageDao", SyncStorageDao.class);
+		List<SyncMsg> list = syncStorageDao.selectList(tableName);
+		if(list == null){
+			return;
+		}
+		for(SyncMsg syncMsg : list){
+			Blob pbBody = syncMsg.getPb_body();
+			byte[] pbArray = pbBody.getBytes(1, (int)pbBody.length());
+			chat_body_msg body_msg = chat_body_msg.parseFrom(pbArray);
+			msg_content msg = body_msg.getMsg();
+			String avatar_url = msg.getAvatarUrl().toStringUtf8();
+			String msgText = msg.getMsg().toStringUtf8();
+			System.out.println("tableName:"+tableName);
+			System.out.println("pbBodylen:"+pbBody.length());
+			System.out.println("unpack avatar_url:" + avatar_url);
+			System.out.println("unpack msgText:" + msgText);
+		}
+	}
+	
+	public static void main(String[] args) throws SQLException, Exception {
+		SyncStorageDao syncStorageDao = SpringContextUtil.getBean("syncStorageDao", SyncStorageDao.class);
+		List<String> tables = syncStorageDao.getAllTableNames();
+		for(String tableName : tables){
+			updateByTableName(tableName);
 		}
 	}
 }

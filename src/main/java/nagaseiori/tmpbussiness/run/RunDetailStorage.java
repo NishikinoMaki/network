@@ -2,6 +2,8 @@ package nagaseiori.tmpbussiness.run;
 
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import nagaseiori.commons.SpringContextUtil;
 import nagaseiori.tmpbussiness.dao.ChatGroupMsg;
 import nagaseiori.tmpbussiness.dao.DetailStorageDao;
@@ -17,6 +19,10 @@ public class RunDetailStorage {
 		for(ChatGroupMsg msg : list){
 			String avatar_url = msg.getAvatar_url();
 			String fileKey = TfsUploadUtil.uploadFile(avatar_url);
+			if(StringUtils.equals(avatar_url, fileKey)){
+				//上传前后的key相同，不用更新
+				continue;
+			}
 			if(fileKey != null){
 				msg.setAvatar_url(fileKey);
 				detailStorageDao.updateChatGroupMsg(tableName, msg);

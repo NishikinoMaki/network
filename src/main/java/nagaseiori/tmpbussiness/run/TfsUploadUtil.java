@@ -1,11 +1,13 @@
 package nagaseiori.tmpbussiness.run;
 
 import java.io.IOException;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
 
 import nagaseiori.http.HttpClientUtil;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
@@ -19,7 +21,7 @@ public class TfsUploadUtil {
 	public final static String appid = "1";
 	public final static String file_type = "1001";
 	public final static String expiry_date = "0";
-	public final static String public_type = "2";
+	public final static String public_type = "1";
 	public final static int error_code = 0;
 	public final static int file_limit = 5242880;//5M
 	public final static String test_url = "http://192.168.18.39:81/api/20150209/28ead3c9-6a94-4012-8390-8ff86fdfcb66/img/20150209144624520.jpg";
@@ -27,14 +29,40 @@ public class TfsUploadUtil {
 	public final static String download_url = "/api/file/download/direct/general";
 	public final static String host = "http://192.168.18.22:8282";
 	public final static String error_code_name = "error_code";
-	public final static String reply = "reply";
+	public final static String reply = "data";
 	public final static String file_key = "file_key";
-	public final static String test_token = "1";
+	public final static String test_token = "54A1E48103FE7328";
+	final static String[] extFilter = new String[]{".jpg",".JPG",".bmp",".BMP",".png", ".PNG",".jpeg", ".JPEG",".gif", ".GIF" ,".spx", ".SPX"};
+	final static Map<String, Long> blackIpFilter = new HashMap<>();//ip过滤
+	final static long blackIpLimitTime = 3600000;//ip拉黑时间1小时
 	
 	public static String uploadFile(String fileUrl){
-		byte[] file  = HttpClientUtil.httpGet4Byte(fileUrl);
-		String sha1 = DigestUtils.sha1Hex(file);
-		return uploadNormalFile(file, sha1, fileUrl);
+		String result = fileUrl;
+		String url = fileUrl;
+		if(StringUtils.isEmpty(url)){
+			return result;
+		}
+		if(StringUtils.indexOf(url, "http://") == -1){
+			return result;
+		}
+		if(StringUtils.indexOfAny(url, extFilter) == -1){
+			return result;
+		}
+		String host = getHost(url);
+		if(blackIpFilter.containsKey(host)){
+			long putTime = blackIpFilter.get(host);
+			long now = System.currentTimeMillis();
+			if(now - putTime < blackIpLimitTime){//该ip在被拉黑阶段，直接返回，不建立http连接
+				return result;
+			}
+		}
+		byte[] file =  HttpClientUtil.httpGet4Byte(fileUrl);
+		if(file == null){
+			blackIpFilter.put(host, System.currentTimeMillis());
+			return result;
+		}
+		String sha1 = sha1Tfs(file);
+		return uploadNormalFile(file, sha1, result);
 	}
 	
 	public static String uploadNormalFile(byte[] file, String sha1, String fileUrl){
@@ -43,7 +71,7 @@ public class TfsUploadUtil {
 		//multipartEntityBuilder.addBinaryBody("file", file);//添加包体文件
 		//HttpEntity multipartFormEntity = multipartEntityBuilder.build();
 		HttpEntity byteArrayEntity = new ByteArrayEntity(file);
-		Map<String,String> params = new HashMap<String,String>();
+		Map<String,String> params = new HashMap<>();
 		params.put("token", test_token);
 		params.put("file_name", file_name);
 		params.put("file_type", file_type);
@@ -55,7 +83,8 @@ public class TfsUploadUtil {
 		try {
 			String url = host + upload_url;
 			String result = HttpClientUtil.httpPostSetParamInHeaders(url , byteArrayEntity, params, "UTF-8");
-			if(result != null && StringUtils.contains(result, "error_code")){
+			System.out.println(result);
+			if(result != null && StringUtils.contains(result, "code")){
 				JSONObject replyObj = JSON.parseObject(result);
 				JSONObject replyText = (JSONObject) replyObj.get(reply);
 				String fileKey = (String) replyText.get(file_key);
@@ -64,7 +93,7 @@ public class TfsUploadUtil {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return null;
+		return fileUrl;
 	}
 	
 	public static String getFileName(String filename) {
@@ -80,26 +109,35 @@ public class TfsUploadUtil {
 		return filename;
 	}
 	
+	private static String getHost(String url){
+		try{
+			int beginIndex = url.indexOf("http://");
+			if(beginIndex == -1){
+				return null;
+			}
+			String substring = url.replaceFirst("http://", "");
+			int endIndex = StringUtils.indexOf(substring, "/");
+			return substring.substring(0, endIndex);
+		}catch(Exception e){
+			return null;
+		}
+	}
+	
 	public static void download(String key){
 		String url = host + download_url + "?file_key="+key;
 		String content = HttpClientUtil.httpGet(url);
 		System.out.println(content);
 	}
 	
+	private static String sha1Tfs(byte[] data){
+		MessageDigest digest = DigestUtils.getSha1Digest();
+		digest.update(data);
+		String text = new String(Hex.encodeHex(data, false)).substring(0,10);
+		return DigestUtils.sha1Hex(data);
+		//return text;
+	}
+	
 	public static void main(String[] args) throws IOException {
-//		File f = new File("E:\\file_test\\test.txt");
-//		InputStream is = new FileInputStream(f);
-//		StringBuilder str = new StringBuilder();
-//		int b = 1;
-//		while((b = is.read()) != -1){
-//			str.append((char)b);
-//		}
-//		is.close();
-//		byte[] file = str.toString().getBytes();
-//		String sha1 = DigestUtils.sha1Hex(file);
-//		System.out.println(str);
-//		String key = uploadNormalFile(file , sha1, "test.txt");
-//		System.out.println(key);
-//		download("2T1qzdTByJT1RCvBVdK_0_1_1001_jpg");
+		System.out.println(sha1Tfs("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".getBytes()));
 	}
 }

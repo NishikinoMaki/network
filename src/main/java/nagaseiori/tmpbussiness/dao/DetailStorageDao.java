@@ -20,8 +20,8 @@ public class DetailStorageDao {
 	
 	public final static String chat_msg_="chat_msg_";
 	
-	RowMapper<ChatMsg> chatMsgRowMapper = new BeanPropertyRowMapper<ChatMsg>(ChatMsg.class);
-	RowMapper<ChatGroupMsg> chatGroupRowMapper = new BeanPropertyRowMapper<ChatGroupMsg>(ChatGroupMsg.class);
+	RowMapper<ChatMsg> chatMsgRowMapper = new BeanPropertyRowMapper<>(ChatMsg.class);
+	RowMapper<ChatGroupMsg> chatGroupRowMapper = new BeanPropertyRowMapper<>(ChatGroupMsg.class);
 	
 	
 	public List<ChatMsg> selectChatMsgList(String tableName){
