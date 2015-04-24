@@ -10,8 +10,8 @@
 	
 	<!-- jar版本统一管理，解决版本冲 -->
 	<properties>
-		<java_source_version>1.8</java_source_version>
-		<java_target_version>1.8</java_target_version>
+		<java_source_version>1.7</java_source_version>
+		<java_target_version>1.7</java_target_version>
 		<file.encoding>UTF-8</file.encoding>
 		<spring.version>4.1.6.RELEASE</spring.version>
 		<junit.version>4.11</junit.version>
@@ -134,5 +134,49 @@
 
 	<build>
 		<finalName>network</finalName>
+		<plugins>
+			<!-- 将依赖的jar包导入到指定目录去 -->
+			<plugin>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+	            	<execution>
+	                    <id>copy-dependencies</id>
+	                    <phase>prepare-package</phase>
+	                    <goals>
+	                        <goal>copy-dependencies</goal>
+	                    </goals>
+	                    <configuration>
+	                        <outputDirectory>${project.build.directory}/lib</outputDirectory>
+	                        <overWriteReleases>false</overWriteReleases>
+	                        <overWriteSnapshots>false</overWriteSnapshots>
+	                        <overWriteIfNewer>true</overWriteIfNewer>
+	                    </configuration>
+	                </execution>
+	            </executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>${java_source_version}</source>
+					<target>${java_target_version}</target>
+					<encoding>${file_encoding}</encoding>
+					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+			<plugin>
+	            <groupId>org.apache.maven.plugins</groupId>
+	            <artifactId>maven-jar-plugin</artifactId>
+	            <configuration>
+	                <archive>
+	                    <manifest>
+	                        <addClasspath>true</addClasspath>
+	                        <classpathPrefix>lib/</classpathPrefix>
+	                        <mainClass>theMainClass</mainClass>
+	                    </manifest>
+	                </archive>
+	            </configuration>
+	        </plugin>
+		</plugins>
 	</build>
 </project>

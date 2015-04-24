@@ -1,6 +1,6 @@
 package nagaseiori.tmpbussiness.dao;
 
-public class ChatGroupMsg {
+public class ChatGroupMsg implements Msg{
 
 	private long msg_serial_t;
 	private long uid;

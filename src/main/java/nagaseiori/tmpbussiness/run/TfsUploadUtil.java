@@ -1,17 +1,18 @@
 package nagaseiori.tmpbussiness.run;
 
 import java.io.IOException;
-import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import nagaseiori.http.HttpClientUtil;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.ByteArrayEntity;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -27,7 +28,7 @@ public class TfsUploadUtil {
 	public final static String test_url = "http://192.168.18.39:81/api/20150209/28ead3c9-6a94-4012-8390-8ff86fdfcb66/img/20150209144624520.jpg";
 	public final static String upload_url = "/api/file/upload_smallfile/general";
 	public final static String download_url = "/api/file/download/direct/general";
-	public final static String host = "http://192.168.18.22:8282";
+	public static String host = "";
 	public final static String error_code_name = "error_code";
 	public final static String reply = "data";
 	public final static String file_key = "file_key";
@@ -35,6 +36,16 @@ public class TfsUploadUtil {
 	final static String[] extFilter = new String[]{".jpg",".JPG",".bmp",".BMP",".png", ".PNG",".jpeg", ".JPEG",".gif", ".GIF" ,".spx", ".SPX"};
 	final static Map<String, Long> blackIpFilter = new HashMap<>();//ip过滤
 	final static long blackIpLimitTime = 3600000;//ip拉黑时间1小时
+	
+	static {
+		try {
+			Properties props = PropertiesLoaderUtils.loadProperties(new ClassPathResource("tfs_server.properties"));
+			host = props.getProperty("server_url");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	
 	public static String uploadFile(String fileUrl){
 		String result = fileUrl;
@@ -61,7 +72,7 @@ public class TfsUploadUtil {
 			blackIpFilter.put(host, System.currentTimeMillis());
 			return result;
 		}
-		String sha1 = sha1Tfs(file);
+		String sha1 = DigestUtils.sha1Hex(file);
 		return uploadNormalFile(file, sha1, result);
 	}
 	
@@ -129,15 +140,4 @@ public class TfsUploadUtil {
 		System.out.println(content);
 	}
 	
-	private static String sha1Tfs(byte[] data){
-		MessageDigest digest = DigestUtils.getSha1Digest();
-		digest.update(data);
-		String text = new String(Hex.encodeHex(data, false)).substring(0,10);
-		return DigestUtils.sha1Hex(data);
-		//return text;
-	}
-	
-	public static void main(String[] args) throws IOException {
-		System.out.println(sha1Tfs("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".getBytes()));
-	}
 }

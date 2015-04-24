@@ -67,4 +67,25 @@
 		<constructor-arg ref="syncStorageDataSource" />
 	</bean>
 	
+	<bean id="momentsHikariConfig" class="com.zaxxer.hikari.HikariConfig">
+	    <property name="poolName" value="springHikariCP" />
+	    <property name="connectionTestQuery" value="SELECT 1" />
+	    <property name="dataSourceClassName" value="com.mysql.jdbc.jdbc2.optional.MysqlDataSource" />
+	    <property name="dataSourceProperties">
+	        <props>
+	            <prop key="url">${jdbc_url_moments}</prop>
+	            <prop key="user">${jdbc_user_moments}</prop>
+	            <prop key="password">${jdbc_password_moments}</prop>
+	        </props>
+	    </property>
+	</bean>
+
+	<bean id="momentsDataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+	    <constructor-arg ref="momentsHikariConfig"/>
+	</bean>
+
+	<bean id="momentsTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
+		<constructor-arg ref="momentsDataSource" />
+	</bean>
+	
 </beans>

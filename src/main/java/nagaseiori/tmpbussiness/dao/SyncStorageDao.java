@@ -44,7 +44,6 @@ public class SyncStorageDao {
 			conn = syncStorageDataSource.getConnection();
 			DatabaseMetaData dbmd = conn.getMetaData();
 			// 表名列表
-			//ResultSet rest = dbmd.getTables(database, null, null, new String[] { "TABLE" });
 			String cataLog = conn.getCatalog();
 			ResultSet rest = dbmd.getTables(cataLog, null, null, new String[] {"TABLE"});
 			// 输出 table_name

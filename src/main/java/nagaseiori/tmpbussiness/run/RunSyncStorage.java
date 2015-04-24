@@ -2,7 +2,9 @@ package nagaseiori.tmpbussiness.run;
 
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -24,14 +26,27 @@ public class RunSyncStorage {
 		if(list == null){
 			return;
 		}
+		Map<String,String> urlCache = new HashMap<>();
 		for(SyncMsg syncMsg : list){
 			Blob pbBody = syncMsg.getPb_body();
 			chat_body_msg body_msg = chat_body_msg.parseFrom(pbBody.getBytes(1, (int)pbBody.length()));
 			msg_content msg = body_msg.getMsg();
 			String avatar_url = msg.getAvatarUrl().toStringUtf8();
 			String msgText = msg.getMsg().toStringUtf8();
-			String new_avatar_url = TfsUploadUtil.uploadFile(avatar_url);
-			String newMsgText = TfsUploadUtil.uploadFile(msgText);
+			String new_avatar_url = null;
+			String newMsgText = null;
+			if(urlCache.containsKey(avatar_url)){
+				new_avatar_url = urlCache.get(avatar_url);
+			}else{
+				new_avatar_url = TfsUploadUtil.uploadFile(avatar_url);
+				urlCache.put(avatar_url, new_avatar_url);
+			}
+			if(urlCache.containsKey(msgText)){
+				newMsgText = urlCache.get(msgText);
+			}else{
+				newMsgText = TfsUploadUtil.uploadFile(msgText);
+				urlCache.put(msgText, newMsgText);
+			}
 			if(StringUtils.equals(avatar_url, new_avatar_url) && StringUtils.equals(msgText, newMsgText)){
 				//如果上传前后的路径不变，则不需要更新数据库
 				continue;
